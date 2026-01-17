@@ -1,72 +1,106 @@
 import { useEffect, useState } from "react";
-import { parcels as initialParcels } from "../lib/parcels";
+import Head from "next/head";
+import Image from "next/image";
+
+// Demo parcels (90 parcel, random)
+const initialParcels = Array.from({ length: 90 }, (_, i) => ({
+  id: i + 1,
+  status: Math.random() < 0.3 ? "occupied" : "available",
+  holder: Math.random() < 0.3 ? "American Celestial Research Ltd." : null,
+  price: Math.floor(Math.random() * 5000) + 1000, // $1000-$6000
+}));
 
 export default function Home() {
   const [parcels, setParcels] = useState([]);
+  const [selectedParcel, setSelectedParcel] = useState(null);
 
   useEffect(() => {
-    const mapWidth = 1000; // hold-map.jpg szélesség pixelben
-    const mapHeight = 500; // hold-map.jpg magasság pixelben
-    const hexSize = 30; // hexagon sugar
+    const mapWidth = 1000;
+    const mapHeight = 500;
+    const hexSize = 30;
 
     function isOverlapping(x, y, others) {
-      return others.some(p => Math.hypot(p.x - x, p.y - y) < hexSize * 2);
+      return others.some(
+        (p) => Math.hypot(p.x - x, p.y - y) < hexSize * 2
+      );
     }
 
-    const positioned = initialParcels.map((p, index, arr) => {
+    const positioned = [];
+    initialParcels.forEach((p) => {
       let x, y;
       let attempts = 0;
       do {
         x = Math.random() * (mapWidth - hexSize * 2) + hexSize;
         y = Math.random() * (mapHeight - hexSize * 2) + hexSize;
         attempts++;
-      } while (isOverlapping(x, y, positioned || []) && attempts < 100);
-      return { ...p, x, y };
+      } while (isOverlapping(x, y, positioned) && attempts < 100);
+      positioned.push({ ...p, x, y });
     });
 
     setParcels(positioned);
   }, []);
 
-  function buyParcel(id) {
-    const name = prompt("Enter your name for this parcel (optional):");
-    setParcels(parcels.map(p =>
-      p.id === id ? { ...p, holder: name || "Anonymous" } : p
-    ));
-    alert("Purchase successful!");
+  function handleParcelClick(parcel) {
+    if (parcel.status === "occupied") return;
+    setSelectedParcel(parcel);
   }
 
   return (
-    <div style={{ position: "relative", width: "1000px", margin: "0 auto" }}>
-      <h1 style={{ textAlign: "center" }}>Reserve Your Place on the Moon</h1>
-      <p style={{ textAlign: "center" }}>
-        Select a parcel and secure a speculative pre-emptive right. No property is granted today.
-      </p>
-      <img src="/moon/moon-map.jpg" alt="Lunar Map" width="100%" />
-      {parcels.map(p => (
-        <div
-          key={p.id}
-          onClick={() => !p.holder && buyParcel(p.id)}
-          style={{
-            position: "absolute",
-            left: p.x - 20,
-            top: p.y - 20,
-            width: 40,
-            height: 40,
-            backgroundColor: p.holder ? "red" : "green",
-            clipPath: "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)",
-            cursor: p.holder ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "white",
-            fontSize: "10px",
-            textAlign: "center",
-          }}
-          title={`Parcel #${p.id}\nSize: ${p.size} sqm\nPrice: $${p.price}\n${p.holder ? "Occupied by: " + p.holder : "Available"}`}
-        >
-          {p.id}
+    <>
+      <Head>
+        <title>Lunar Pre-Emptive Rights</title>
+      </Head>
+      <main style={{ textAlign: "center" }}>
+        <h1>Reserve Your Place on the Moon</h1>
+        <p>
+          Humanity is returning to the Moon. Secure a documented speculative
+          position today. No ownership granted under current law.
+        </p>
+
+        <div style={{ position: "relative", width: 1000, height: 500, margin: "auto" }}>
+          <Image
+            src="/moon/moon-map.jpg"
+            alt="Moon map"
+            layout="fill"
+            objectFit="cover"
+          />
+          {parcels.map((p) => (
+            <div
+              key={p.id}
+              onClick={() => handleParcelClick(p)}
+              title={`Parcel #${p.id} - $${p.price}${p.status === "occupied" ? " (Occupied)" : ""}`}
+              style={{
+                position: "absolute",
+                width: 30,
+                height: 30,
+                left: p.x - 15,
+                top: p.y - 15,
+                clipPath: "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)", // hexagon
+                backgroundColor:
+                  p.status === "occupied"
+                    ? "red"
+                    : selectedParcel?.id === p.id
+                    ? "blue"
+                    : "green",
+                cursor: p.status === "occupied" ? "not-allowed" : "pointer",
+                border: "2px solid #fff",
+              }}
+            />
+          ))}
         </div>
-      ))}
-    </div>
+
+        {selectedParcel && (
+          <div style={{ marginTop: 20 }}>
+            <h3>Selected Parcel #{selectedParcel.id}</h3>
+            <p>Price: ${selectedParcel.price}</p>
+            <button
+              onClick={() => alert(`Proceed to checkout for parcel #${selectedParcel.id}`)}
+            >
+              Acquire Pre-Emptive Right
+            </button>
+          </div>
+        )}
+      </main>
+    </>
   );
 }
