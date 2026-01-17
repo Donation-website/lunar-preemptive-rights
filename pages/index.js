@@ -2,7 +2,7 @@ import Head from "next/head";
 import { useState } from "react";
 
 export default function Home() {
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(false);
 
   async function buy() {
     if (!selected) {
@@ -10,68 +10,64 @@ export default function Home() {
       return;
     }
 
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ parcel: selected })
-    });
-
+    const res = await fetch("/api/checkout", { method: "POST" });
     const data = await res.json();
-    if (data.url) window.location.href = data.url;
-    else alert(data.error || "Payment failed");
+
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert("Payment initialization failed");
+    }
   }
 
   return (
     <>
       <Head>
         <title>Lunar Pre-Emptive Rights</title>
-        <meta
-          name="description"
-          content="A speculative pre-emptive registration platform anticipating future lunar legal frameworks."
-        />
-        <meta
-          name="keywords"
-          content="moon land, lunar land, space law, future ownership, preemptive rights, Elon Musk space"
-        />
       </Head>
 
-      <main className="container">
-        <section className="hero">
-          <h1>Reserve Your Place on the Moon</h1>
-          <p className="lead">
-            Humanity is returning to the Moon. Laws will follow.
-            Secure a documented speculative position today.
-          </p>
-        </section>
+      <main style={{ padding: "40px", color: "#fff", background: "#000" }}>
+        <h1>Reserve Your Place on the Moon</h1>
+        <p>
+          Humanity is returning to the Moon. Laws will follow.
+          Secure a documented speculative position today.
+        </p>
 
-        <section className="map">
-          <h2>Select a Lunar Parcel</h2>
-          <img
-            src="/moon.jpg"
-            alt="Lunar map"
-            onClick={() => setSelected("Parcel-002")}
-            className={selected ? "map selected" : "map"}
-          />
-          {selected && <p className="selected">Selected: {selected}</p>}
-        </section>
+        <h2>Select a Lunar Parcel</h2>
 
-        <section className="purchase">
-          <button onClick={buy}>Acquire Pre-Emptive Right</button>
-        </section>
+        <img
+          src="/moon.jpg"
+          alt="Lunar map"
+          style={{
+            width: "100%",
+            maxWidth: "600px",
+            border: selected ? "3px solid #4da3ff" : "3px solid #333",
+            cursor: "pointer"
+          }}
+          onClick={() => setSelected(true)}
+        />
 
-        <footer>
+        {selected && <p style={{ color: "#4da3ff" }}>Parcel selected</p>}
+
+        <button
+          onClick={buy}
+          style={{
+            marginTop: "30px",
+            padding: "15px 25px",
+            fontSize: "16px",
+            cursor: "pointer"
+          }}
+        >
+          Acquire Pre-Emptive Right
+        </button>
+
+        <footer style={{ marginTop: "60px", fontSize: "13px", opacity: 0.7 }}>
           <p>
-            No ownership is granted. This service is speculative and subject to
-            future international legal frameworks (Outer Space Treaty, 1967).
+            No ownership is granted. This service is speculative under the
+            Outer Space Treaty (1967).
           </p>
 
-          <div className="socials">
-            <a href="https://www.facebook.com/sharer/sharer.php?u=https://lunar-preemptive-rights.vercel.app" target="_blank">Facebook</a>
-            <a href="https://twitter.com/intent/tweet?text=The%20future%20of%20the%20Moon%20starts%20now" target="_blank">X</a>
-            <a href="https://www.instagram.com/" target="_blank">Instagram</a>
-          </div>
-
-          <p className="copy">© 2026 Lunar Pre-Emptive Rights</p>
+          <p>© 2026 Lunar Pre-Emptive Rights</p>
         </footer>
       </main>
     </>
