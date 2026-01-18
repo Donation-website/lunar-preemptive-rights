@@ -1,49 +1,68 @@
-import React, { useRef, useMemo } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+// components/MoonScene.js
+import { useRef, useEffect } from 'react'
 import * as THREE from 'three'
-
-const parcelData = Array.from({ length: 180 }).map((_, i) => ({
-  id: i + 1,
-  theta: Math.random() * Math.PI * 2,
-  phi: Math.acos(Math.random() * 2 - 1),
-  size: 0.03 + Math.random() * 0.02,
-  purchased: Math.random() < 0.3 // random 30% piros
-}))
-
-function Parcel({ parcel }) {
-  const mesh = useRef()
-  const color = parcel.purchased ? 'red' : 'green'
-  const radius = 1
-  const x = radius * Math.sin(parcel.phi) * Math.cos(parcel.theta)
-  const y = radius * Math.cos(parcel.phi)
-  const z = radius * Math.sin(parcel.phi) * Math.sin(parcel.theta)
-
-  return (
-    <mesh
-      ref={mesh}
-      position={[x, y, z]}
-      scale={[parcel.size, parcel.size, parcel.size]}
-    >
-      <icosahedronGeometry args={[1, 0]} />
-      <meshStandardMaterial color={color} />
-    </mesh>
-  )
-}
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 
 export default function MoonScene() {
-  const texture = useMemo(() => new THREE.TextureLoader().load('/moon/moon-map.jpg'), [])
+  const mountRef = useRef(null)
 
-  return (
-    <Canvas style={{ height: '100vh', background: 'black' }}>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 5, 5]} />
-      <mesh>
-        <sphereGeometry args={[1, 64, 64]} />
-        <meshStandardMaterial map={texture} />
-      </mesh>
-      {parcelData.map(p => <Parcel key={p.id} parcel={p} />)}
-      <OrbitControls enableZoom={true} />
-    </Canvas>
-  )
+  useEffect(() => {
+    const mount = mountRef.current
+
+    // Scene
+    const scene = new THREE.Scene()
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      mount.clientWidth / mount.clientHeight,
+      0.1,
+      1000
+    )
+    camera.position.z = 3
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+    renderer.setSize(mount.clientWidth, mount.clientHeight)
+    mount.appendChild(renderer.domElement)
+
+    // Moon texture
+    const textureLoader = new THREE.TextureLoader()
+    const moonTexture = textureLoader.load('/moon/moon-map.jpg') // innen töltjük
+    const geometry = new THREE.SphereGeometry(1, 64, 64)
+    const material = new THREE.MeshStandardMaterial({ map: moonTexture })
+    const moon = new THREE.Mesh(geometry, material)
+    scene.add(moon)
+
+    // Light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1)
+    scene.add(ambientLight)
+
+    // Controls
+    const controls = new OrbitControls(camera, renderer.domElement)
+    controls.enableZoom = true
+
+    // Animation
+    const animate = function () {
+      requestAnimationFrame(animate)
+      moon.rotation.y += 0.001
+      renderer.render(scene, camera)
+    }
+    animate()
+
+    // Handle resize
+    const handleResize = () => {
+      renderer.setSize(mount.clientWidth, mount.clientHeight)
+      camera.aspect = mount.clientWidth / mount.clientHeight
+      camera.updateProjectionMatrix()
+    }
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      mount.removeChild(renderer.domElement)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+
+  return <div ref={mountRef} style={{ width: '100vw', height: '100vh' }} />
 }
