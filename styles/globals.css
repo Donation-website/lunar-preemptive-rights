@@ -30,3 +30,25 @@ h1 {
   height: 32px;
   cursor: pointer;
 }
+
+.description {
+  position: absolute;
+  bottom: 60px;
+  left: 20px;
+  color: white;
+  max-width: 400px;
+  z-index: 10;
+}
+
+.tos {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  color: white;
+  z-index: 10;
+}
+
+details summary {
+  cursor: pointer;
+}
+
