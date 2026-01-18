@@ -1,68 +1,57 @@
-// components/MoonScene.js
-import { useRef, useEffect } from 'react'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls, Stars, useTexture } from '@react-three/drei'
+import { useState, useEffect } from 'react'
 
 export default function MoonScene() {
-  const mountRef = useRef(null)
+  const [parcels, setParcels] = useState([])
+  const moonTexture = useTexture('/moon/moon-map.jpg')
 
   useEffect(() => {
-    const mount = mountRef.current
-
-    // Scene
-    const scene = new THREE.Scene()
-
-    // Camera
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      mount.clientWidth / mount.clientHeight,
-      0.1,
-      1000
-    )
-    camera.position.z = 3
-
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    renderer.setSize(mount.clientWidth, mount.clientHeight)
-    mount.appendChild(renderer.domElement)
-
-    // Moon texture
-    const textureLoader = new THREE.TextureLoader()
-    const moonTexture = textureLoader.load('/moon/moon-map.jpg') // innen töltjük
-    const geometry = new THREE.SphereGeometry(1, 64, 64)
-    const material = new THREE.MeshStandardMaterial({ map: moonTexture })
-    const moon = new THREE.Mesh(geometry, material)
-    scene.add(moon)
-
-    // Light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1)
-    scene.add(ambientLight)
-
-    // Controls
-    const controls = new OrbitControls(camera, renderer.domElement)
-    controls.enableZoom = true
-
-    // Animation
-    const animate = function () {
-      requestAnimationFrame(animate)
-      moon.rotation.y += 0.001
-      renderer.render(scene, camera)
+    // 180 hexagon parcel, random position
+    const temp = []
+    for (let i = 0; i < 180; i++) {
+      temp.push({
+        id: i + 1,
+        x: Math.random() * 4 - 2,  // adjust to fit sphere
+        y: Math.random() * 4 - 2,
+        z: 0,
+        status: Math.random() < 0.3 ? 'taken' : 'available',
+        size: 0.05 + Math.random() * 0.03,
+        price: Math.floor(Math.random() * 100 + 50)
+      })
     }
-    animate()
-
-    // Handle resize
-    const handleResize = () => {
-      renderer.setSize(mount.clientWidth, mount.clientHeight)
-      camera.aspect = mount.clientWidth / mount.clientHeight
-      camera.updateProjectionMatrix()
-    }
-    window.addEventListener('resize', handleResize)
-
-    return () => {
-      mount.removeChild(renderer.domElement)
-      window.removeEventListener('resize', handleResize)
-    }
+    setParcels(temp)
   }, [])
 
-  return <div ref={mountRef} style={{ width: '100vw', height: '100vh' }} />
+  const handleParcelClick = (parcel) => {
+    if (parcel.status === 'available') {
+      alert(`Proceed to checkout for parcel #${parcel.id}`)
+      // call API here for checkout
+    }
+  }
+
+  return (
+    <Canvas camera={{ position: [0, 0, 5] }}>
+      <ambientLight intensity={0.5} />
+      <Stars />
+      <OrbitControls enableZoom={true} />
+
+      {parcels.map(p => (
+        <mesh
+          key={p.id}
+          position={[p.x, p.y, p.z]}
+          onClick={() => handleParcelClick(p)}
+        >
+          <cylinderGeometry args={[p.size, p.size, 0.01, 6]} />
+          <meshStandardMaterial color={p.status === 'available' ? 'green' : 'red'} />
+        </mesh>
+      ))}
+
+      {/* Moon sphere */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <sphereGeometry args={[2, 64, 64]} />
+        <meshStandardMaterial map={moonTexture} />
+      </mesh>
+    </Canvas>
+  )
 }
