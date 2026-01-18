@@ -1,55 +1,9 @@
-body, html, #__next {
-  margin: 0;
+html, body, #__next {
   padding: 0;
+  margin: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: black;
-  font-family: Arial, sans-serif;
-}
-
-h1 {
-  position: absolute;
-  z-index: 10;
-  color: white;
-  padding: 20px;
-}
-
-.header-icons {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  display: flex;
-  gap: 10px;
-  z-index: 10;
-}
-
-.header-icons img {
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-}
-
-.aszf {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  z-index: 10;
-  color: white;
-  cursor: pointer;
-}
-
-.aszf-content {
-  display: none;
-  position: absolute;
-  bottom: 50px;
-  right: 0;
-  background: rgba(0,0,0,0.85);
-  color: white;
-  padding: 10px;
-  max-width: 300px;
-}
-
-.aszf-content.show {
-  display: block;
+  font-family: sans-serif;
 }
