@@ -1,157 +1,98 @@
 import * as THREE from 'three'
-import { useEffect, useRef, useState } from 'react'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
+import { useState, useMemo } from 'react'
 
+// Hexagon parcellák adatai
 const PARCEL_COUNT = 180
-const MOON_RADIUS = 5
+const PARCELS = Array.from({ length: PARCEL_COUNT }, (_, i) => ({
+  id: i + 1,
+  size: Math.random() * 0.02 + 0.01, // véletlenszerű méret
+  price: (Math.random() * 500 + 100).toFixed(2), // ár USD
+  status: Math.random() < 0.3 ? 'occupied' : 'available', // 30% foglalt
+  position: [
+    (Math.random() - 0.5) * 2, // x
+    (Math.random() - 0.5) * 2, // y
+    (Math.random() - 0.5) * 2  // z
+  ]
+}))
 
-export default function MoonScene() {
-  const mountRef = useRef(null)
-  const [hoverInfo, setHoverInfo] = useState(null)
-
-  useEffect(() => {
-    const scene = new THREE.Scene()
-
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    )
-    camera.position.z = 12
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.setPixelRatio(window.devicePixelRatio)
-    mountRef.current.appendChild(renderer.domElement)
-
-    /* LIGHTS */
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6))
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8)
-    dirLight.position.set(5, 5, 5)
-    scene.add(dirLight)
-
-    /* MOON */
-    const moonTexture = new THREE.TextureLoader().load('/moon/moon-map.jpg')
-    const moon = new THREE.Mesh(
-      new THREE.SphereGeometry(MOON_RADIUS, 64, 64),
-      new THREE.MeshStandardMaterial({ map: moonTexture })
-    )
-    scene.add(moon)
-
-    /* CONTROLS */
-    const controls = new OrbitControls(camera, renderer.domElement)
-    controls.enablePan = false
-    controls.minDistance = 7
-    controls.maxDistance = 18
-
-    /* PARCELS */
-    const parcels = []
-    const parcelData = []
-
-    for (let i = 0; i < PARCEL_COUNT; i++) {
-      const theta = Math.random() * Math.PI * 2
-      const phi = Math.acos(2 * Math.random() - 1)
-
-      const x = MOON_RADIUS * Math.sin(phi) * Math.cos(theta)
-      const y = MOON_RADIUS * Math.cos(phi)
-      const z = MOON_RADIUS * Math.sin(phi) * Math.sin(theta)
-
-      const geometry = new THREE.CircleGeometry(0.18, 32)
-      const isSold = Math.random() < 0.25
-
-      const material = new THREE.MeshBasicMaterial({
-        color: isSold ? 0xff3333 : 0x00ff88,
-        transparent: true,
-        opacity: isSold ? 0.6 : 0.9,
-        side: THREE.DoubleSide
-      })
-
-      const parcel = new THREE.Mesh(geometry, material)
-      parcel.position.set(x, y, z)
-      parcel.lookAt(0, 0, 0)
-      parcel.userData = {
-        id: i + 1,
-        sold: isSold,
-        price: isSold ? null : 299 + Math.floor(Math.random() * 700)
-      }
-
-      parcels.push(parcel)
-      parcelData.push(parcel.userData)
-      scene.add(parcel)
-    }
-
-    /* RAYCAST */
-    const raycaster = new THREE.Raycaster()
-    const mouse = new THREE.Vector2()
-
-    function onMouseMove(event) {
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
-
-      raycaster.setFromCamera(mouse, camera)
-      const intersects = raycaster.intersectObjects(parcels)
-
-      if (intersects.length > 0) {
-        const p = intersects[0].object.userData
-        setHoverInfo({
-          x: event.clientX,
-          y: event.clientY,
-          text: `Parcel #${p.id} – ${p.sold ? 'Occupied' : '$' + p.price}`
-        })
-      } else {
-        setHoverInfo(null)
-      }
-    }
-
-    function onClick() {
-      if (!hoverInfo) return
-      const id = parseInt(hoverInfo.text.match(/\d+/)[0])
-      const parcel = parcels.find(p => p.userData.id === id)
-      if (parcel.userData.sold) return
-
-      fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          parcelId: id,
-          price: parcel.userData.price
-        })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.url) window.location.href = data.url
-        })
-    }
-
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('click', onClick)
-
-    function animate() {
-      requestAnimationFrame(animate)
-      moon.rotation.y += 0.0008
-      renderer.render(scene, camera)
-    }
-    animate()
-
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('click', onClick)
-      mountRef.current.removeChild(renderer.domElement)
-    }
-  }, [hoverInfo])
+function Parcel({ parcel, onSelect }) {
+  const [hovered, setHovered] = useState(false)
 
   return (
-    <>
-      <div ref={mountRef} />
-      {hoverInfo && (
-        <div
-          className="parcel-label"
-          style={{ left: hoverInfo.x + 12, top: hoverInfo.y + 12 }}
-        >
-          {hoverInfo.text}
-        </div>
-      )}
-    </>
+    <mesh
+      position={parcel.position}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
+      onClick={() => parcel.status === 'available' && onSelect(parcel)}
+    >
+      <cylinderGeometry
+        args={[
+          parcel.size, // top radius
+          parcel.size, // bottom radius
+          0.01,        // height
+          6            // segments for hexagon
+        ]}
+      />
+      <meshStandardMaterial
+        color={
+          parcel.status === 'occupied'
+            ? 'red'
+            : hovered
+            ? 'yellow'
+            : 'green'
+        }
+        opacity={0.8}
+        transparent
+      />
+    </mesh>
+  )
+}
+
+export default function MoonScene() {
+  const [selectedParcel, setSelectedParcel] = useState(null)
+
+  const handleSelect = (parcel) => {
+    setSelectedParcel(parcel)
+    if (parcel.status === 'available') {
+      // itt lehet hívni a checkout funkciót
+      alert(`Proceed to checkout for parcel #${parcel.id} - $${parcel.price}`)
+    }
+  }
+
+  // Hold textúra
+  const moonTexture = useMemo(() => new THREE.TextureLoader().load('/moon/moon-map.jpg'), [])
+
+  // Hold forgatása
+  function Moon() {
+    const ref = useFrame(({ clock }) => {
+      ref.rotation.y = clock.getElapsedTime() * 0.05
+    })
+
+    return (
+      <mesh ref={ref}>
+        <sphereGeometry args={[1, 64, 64]} />
+        <meshStandardMaterial map={moonTexture} />
+      </mesh>
+    )
+  }
+
+  return (
+    <Canvas
+      camera={{ position: [0, 0, 3], fov: 60 }}
+      style={{ width: '100vw', height: '100vh' }}
+    >
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[5, 5, 5]} intensity={1} />
+
+      <Moon />
+
+      {PARCELS.map((p) => (
+        <Parcel key={p.id} parcel={p} onSelect={handleSelect} />
+      ))}
+
+      <OrbitControls enableZoom={true} enablePan={false} />
+    </Canvas>
   )
 }
