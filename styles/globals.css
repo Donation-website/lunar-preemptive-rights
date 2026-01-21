@@ -9,22 +9,61 @@ html, body, #__next {
 }
 
 h1 {
-  font-size: 24px;
+  font-size: 28px;
   position: absolute;
   z-index: 10;
   color: white;
-  padding: 20px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
 }
 
 .social-icons {
   position: absolute;
   bottom: 20px;
-  left: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  gap: 10px;
+  gap: 15px;
 }
 .social-icons img {
   width: 32px;
   height: 32px;
   cursor: pointer;
+}
+
+.aszf-container {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  color: white;
+  cursor: pointer;
+}
+.aszf-content {
+  display: none;
+  position: absolute;
+  top: 25px;
+  right: 0;
+  width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  background-color: #222;
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.aszf-container:hover .aszf-content {
+  display: block;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  text-align: center;
+  color: white;
+  font-size: 12px;
+  padding: 5px 0;
 }
