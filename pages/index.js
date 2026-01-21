@@ -1,73 +1,46 @@
-import dynamic from 'next/dynamic'
-import Head from 'next/head'
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 
-const MoonScene = dynamic(() => import('../components/MoonScene'), { ssr: false })
+const MoonScene = dynamic(() => import('../components/MoonScene'), {
+  ssr: false
+})
 
 export default function Home() {
-  const [showTerms, setShowTerms] = useState(false)
+  const [selected, setSelected] = useState(null)
 
   return (
-    <>
-      <Head>
-        <title>Lunar Pre-Emptive Rights</title>
-        <meta
-          name="description"
-          content="Reserve a documented speculative pre-emptive position on the Moon. No ownership today. Prepared for future international legal frameworks."
-        />
-        <meta name="keywords" content="moon land, lunar parcels, space law, moon ownership, lunar rights, space investment" />
-      </Head>
+    <div>
+      <h1 className="title">🌕 Lunar Pre-Emptive Rights</h1>
 
-      <main>
-        <h1>🌕 Lunar Pre-Emptive Rights</h1>
+      <MoonScene onParcelSelect={setSelected} />
 
-        <p className="description">
-          Humanity is returning to the Moon.  
-          Laws will follow.  
-          This platform allows individuals to secure a documented, speculative
-          pre-emptive position linked to specific lunar coordinates.
-        </p>
-
-        <MoonScene />
-
-        <section className="info">
+      {selected && (
+        <div className="modal">
+          <h2>Parcel #{selected.id}</h2>
+          <p>Price: ${selected.price}</p>
           <p>
-            No ownership is granted under current international law
-            (Outer Space Treaty, 1967).  
-            This service exists in anticipation of future legal change.
+            Coordinates:<br />
+            x: {selected.position.x.toFixed(2)}<br />
+            y: {selected.position.y.toFixed(2)}<br />
+            z: {selected.position.z.toFixed(2)}
           </p>
 
-          <button onClick={() => setShowTerms(!showTerms)}>
-            {showTerms ? 'Hide Terms & Conditions' : 'View Terms & Conditions'}
-          </button>
+          <a
+            href={`/checkout?parcel=${selected.id}`}
+            className="buy"
+          >
+            Proceed to Checkout
+          </a>
 
-          {showTerms && (
-            <div className="terms">
-              <p>
-                This is a speculative, symbolic reservation service.
-                No legal property rights are transferred.
-                Documentation may be referenced if international law evolves.
-              </p>
-            </div>
-          )}
-        </section>
+          <button onClick={() => setSelected(null)}>Close</button>
+        </div>
+      )}
 
-        <footer>
-          <div className="social">
-            <a href="https://facebook.com" target="_blank">
-              <img src="/icons/fb.png" alt="Facebook" />
-            </a>
-            <a href="https://instagram.com" target="_blank">
-              <img src="/icons/insta.png" alt="Instagram" />
-            </a>
-            <a href="https://x.com" target="_blank">
-              <img src="/icons/x.png" alt="X" />
-            </a>
-          </div>
-
-          <p>© 2026 Lunar Pre-Emptive Rights</p>
-        </footer>
-      </main>
-    </>
+      <footer>
+        <a href="https://facebook.com" target="_blank">Facebook</a>
+        <a href="https://instagram.com" target="_blank">Instagram</a>
+        <a href="https://x.com" target="_blank">X</a>
+      </footer>
+    </div>
   )
 }
