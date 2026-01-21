@@ -1,140 +1,123 @@
-"use client";
+import * as THREE from 'three'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
+import { useRef, useState } from 'react'
 
-import { useEffect, useRef } from "react";
-import * as THREE from "three";
+const PARCELS = Array.from({ length: 180 }).map((_, i) => ({
+  id: `LPR-${String(i + 1).padStart(3, '0')}`,
+  price: 180,
+  lat: (Math.random() * 180 - 90).toFixed(2),
+  lon: (Math.random() * 360 - 180).toFixed(2),
+  sold: false
+}))
 
-export default function MoonScene() {
-  const mountRef = useRef(null);
+function Parcels({ onSelect }) {
+  return PARCELS.map((parcel, i) => {
+    const phi = Math.acos(2 * Math.random() - 1)
+    const theta = 2 * Math.PI * Math.random()
+    const r = 1.02
 
-  useEffect(() => {
-    if (!mountRef.current) return;
+    const x = r * Math.sin(phi) * Math.cos(theta)
+    const y = r * Math.cos(phi)
+    const z = r * Math.sin(phi) * Math.sin(theta)
 
-    // SCENE
-    const scene = new THREE.Scene();
+    return (
+      <mesh
+        key={parcel.id}
+        position={[x, y, z]}
+        onClick={(e) => {
+          e.stopPropagation()
+          if (!parcel.sold) onSelect(parcel)
+        }}
+      >
+        <circleGeometry args={[0.035, 32]} />
+        <meshBasicMaterial
+          color={parcel.sold ? 'red' : 'lime'}
+          wireframe
+        />
+      </mesh>
+    )
+  })
+}
 
-    // CAMERA
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    camera.position.z = 3;
+function Moon({ onSelect }) {
+  const moonRef = useRef()
 
-    // RENDERER
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    mountRef.current.appendChild(renderer.domElement);
-
-    // LIGHT
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(5, 5, 5);
-    scene.add(directionalLight);
-
-    // MOON TEXTURE
-    const textureLoader = new THREE.TextureLoader();
-    const moonTexture = textureLoader.load("/moon/moon-map.jpg");
-
-    // MOON
-    const moonGeometry = new THREE.SphereGeometry(1, 64, 64);
-    const moonMaterial = new THREE.MeshStandardMaterial({
-      map: moonTexture,
-    });
-    const moon = new THREE.Mesh(moonGeometry, moonMaterial);
-    scene.add(moon);
-
-    // PARCEL GROUP (ROTATES WITH MOON)
-    const parcelGroup = new THREE.Group();
-    moon.add(parcelGroup);
-
-    const parcelCount = 60;
-    const parcels = [];
-
-    for (let i = 0; i < parcelCount; i++) {
-      const geometry = new THREE.RingGeometry(0.03, 0.05, 32);
-      const material = new THREE.MeshBasicMaterial({
-        color: 0x00ff88,
-        side: THREE.DoubleSide,
-      });
-
-      const ring = new THREE.Mesh(geometry, material);
-
-      // RANDOM POSITION ON SPHERE
-      const phi = Math.acos(2 * Math.random() - 1);
-      const theta = 2 * Math.PI * Math.random();
-
-      ring.position.set(
-        Math.sin(phi) * Math.cos(theta),
-        Math.cos(phi),
-        Math.sin(phi) * Math.sin(theta)
-      );
-
-      ring.lookAt(0, 0, 0);
-      ring.userData = { clickable: true };
-
-      parcelGroup.add(ring);
-      parcels.push(ring);
-    }
-
-    // RAYCASTER
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    const onMouseMove = (event) => {
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    };
-
-    const onClick = () => {
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(parcels);
-
-      if (intersects.length > 0) {
-        alert("Parcel selected → checkout coming next");
-      }
-    };
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("click", onClick);
-
-    // RESIZE
-    const onResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-    window.addEventListener("resize", onResize);
-
-    // ANIMATE
-    const animate = () => {
-      requestAnimationFrame(animate);
-      moon.rotation.y += 0.0015;
-      renderer.render(scene, camera);
-    };
-    animate();
-
-    // CLEANUP
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("click", onClick);
-      window.removeEventListener("resize", onResize);
-      renderer.dispose();
-      mountRef.current.innerHTML = "";
-    };
-  }, []);
+  useFrame(() => {
+    moonRef.current.rotation.y += 0.001
+  })
 
   return (
-    <div
-      ref={mountRef}
-      style={{
-        width: "100vw",
-        height: "100vh",
-        overflow: "hidden",
-      }}
-    />
-  );
+    <group ref={moonRef}>
+      <mesh>
+        <sphereGeometry args={[1, 64, 64]} />
+        <meshStandardMaterial color="#888" />
+      </mesh>
+
+      <Parcels onSelect={onSelect} />
+    </group>
+  )
+}
+
+export default function MoonScene() {
+  const [selected, setSelected] = useState(null)
+
+  return (
+    <>
+      {selected && (
+        <div style={{
+          position: 'absolute',
+          top: '100px',
+          right: '40px',
+          background: 'rgba(0,0,0,0.85)',
+          padding: '20px',
+          color: 'white',
+          zIndex: 20,
+          width: '260px',
+          borderRadius: '8px'
+        }}>
+          <h3>{selected.id}</h3>
+          <p>Price: ${selected.price}</p>
+          <p>Latitude: {selected.lat}</p>
+          <p>Longitude: {selected.lon}</p>
+
+          <button
+            style={{
+              marginTop: '10px',
+              width: '100%',
+              padding: '10px',
+              cursor: 'pointer'
+            }}
+            onClick={() => {
+              window.location.href = `/checkout?parcel=${selected.id}&price=${selected.price}`
+            }}
+          >
+            Proceed to checkout
+          </button>
+
+          <button
+            style={{
+              marginTop: '8px',
+              width: '100%',
+              padding: '6px',
+              cursor: 'pointer',
+              background: 'transparent',
+              color: '#aaa',
+              border: 'none'
+            }}
+            onClick={() => setSelected(null)}
+          >
+            Close
+          </button>
+        </div>
+      )}
+
+      <Canvas camera={{ position: [0, 0, 3] }}>
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[5, 5, 5]} />
+        <Moon onSelect={setSelected} />
+        <OrbitControls enableZoom />
+      </Canvas>
+    </>
+  )
 }
