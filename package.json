@@ -1,7 +1,6 @@
 {
   "name": "lunar-preemptive-finish",
   "version": "1.0.0",
-  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,8 +10,8 @@
     "next": "14.1.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "three": "^0.160.0",
-    "@react-three/fiber": "^8.15.12",
-    "@react-three/drei": "^9.96.1"
+    "three": "^0.159.0",
+    "@react-three/fiber": "^8.14.5",
+    "@react-three/drei": "^9.58.0"
   }
 }
